@@ -1,0 +1,11 @@
+{
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "client": "cd dev-pulse-f && npm run dev",
+    "server": "cd dev-pulse-b && npm run dev",
+    "build": "cd dev-pulse-f && npm run build"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.3"
+  }
+}
