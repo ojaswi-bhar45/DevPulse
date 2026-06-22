@@ -1,42 +1,55 @@
 import { create } from 'zustand'
 import type { Repo } from '../types'
-import { generateMockRepos } from '../api/mock'
-import { genId } from '../lib/helpers'
+import apiClient from '../api/client'
 
 interface RepoState {
   repos: Repo[]
   loading: boolean
   error: string | null
-  fetchRepos: () => void
-  connectRepo: (name: string, language: string) => void
+  githubConnected: boolean
+  githubUsername: string | null
+  syncing: boolean
+  fetchRepos: () => Promise<void>
+  fetchGitHubStatus: () => Promise<void>
+  syncRepos: () => Promise<void>
 }
 
 export const useRepoStore = create<RepoState>((set, get) => ({
   repos: [],
   loading: true,
   error: null,
+  githubConnected: false,
+  githubUsername: null,
+  syncing: false,
 
-  fetchRepos: () => {
+  fetchRepos: async () => {
     set({ loading: true, error: null })
-    setTimeout(() => {
-      set({ repos: generateMockRepos(8), loading: false })
-    }, 800)
+    try {
+      const res = await apiClient.get('/github/repos')
+      set({ repos: res.data.repos, loading: false })
+    } catch {
+      set({ error: 'Failed to load repos', loading: false })
+    }
   },
 
-  connectRepo: (name, language) => {
-    const { repos } = get()
-    const exists = repos.some((r) => r.name === name)
-    if (exists) {
-      set({ error: 'A repository with this name already exists' })
-      return
+  fetchGitHubStatus: async () => {
+    try {
+      const res = await apiClient.get('/github/status')
+      set({ githubConnected: res.data.connected, githubUsername: res.data.username })
+    } catch {
+      set({ githubConnected: false, githubUsername: null })
     }
-    const newRepo: Repo = {
-      id: genId(),
-      name,
-      language,
-      branches: 1,
-      buildHistory: [],
+  },
+
+  syncRepos: async () => {
+    set({ syncing: true, error: null })
+    try {
+      await apiClient.post('/github/sync')
+      await get().fetchRepos()
+    } catch {
+      set({ error: 'Sync failed' })
+    } finally {
+      set({ syncing: false })
     }
-    set({ repos: [...repos, newRepo], error: null })
   },
 }))
