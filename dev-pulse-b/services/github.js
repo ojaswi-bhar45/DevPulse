@@ -94,6 +94,7 @@ function computeDuration(startedAt, completedAt) {
 async function syncUserData(user) {
   const Build = require("../models/Build");
   const Repo = require("../models/Repo");
+  const { io } = require("../index");
 
   const token = user.githubAccessToken;
   if (!token) throw new Error("GitHub not connected");
@@ -113,7 +114,7 @@ async function syncUserData(user) {
       const duration = computeDuration(run.run_started_at, run.updated_at);
 
       try {
-        await Build.findOneAndUpdate(
+        const build = await Build.findOneAndUpdate(
           { githubRunId: run.id },
           {
             userId: user._id,
@@ -127,8 +128,9 @@ async function syncUserData(user) {
             triggeredAt: run.run_started_at || run.created_at,
             githubRunId: run.id,
           },
-          { upsert: true, new: true }
+          { upsert: true, returnDocument: 'after' }
         );
+        io.to(user._id.toString()).emit("build:updated", build.toObject());
         buildCount++;
       } catch {
         // skip duplicates
@@ -155,7 +157,7 @@ async function syncUserData(user) {
           branches: branchCount,
           buildHistory,
         },
-        { upsert: true, new: true }
+        { upsert: true, returnDocument: 'after' }
       );
       repoCount++;
     } catch {

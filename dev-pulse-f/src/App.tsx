@@ -6,11 +6,14 @@ import { IncidentsPage } from './features/incidents/IncidentsPage'
 import { ReposPage } from './features/repos/ReposPage'
 import { AIPage } from './features/ai/AIPage'
 import { useAuthStore } from './store/authStore'
+import { useSocket } from './hooks/useSocket'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuthStore()
+
+  useSocket()
 
   if (isLoading) {
     return (

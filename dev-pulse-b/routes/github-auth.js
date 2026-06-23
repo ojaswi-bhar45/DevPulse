@@ -6,13 +6,13 @@ const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
 
-router.get("/login", (req, res) => {
+router.get("/github/login", (req, res) => {
   const state = req.query.token || "";
   const url = `https://github.com/login/oauth/authorize?client_id=${process.env.CLIENT_ID}&redirect_uri=${process.env.GITHUB_REDIRECT_URI}&scope=repo,workflow,read:user&state=${state}`;
   res.redirect(url);
 });
 
-router.get("/callback", async (req, res) => {
+router.get("/github/callback", async (req, res) => {
   try {
     const { code, state } = req.query;
     if (!code) {

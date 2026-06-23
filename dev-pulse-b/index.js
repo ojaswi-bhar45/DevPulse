@@ -3,6 +3,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const helmet = require("helmet");
 const cookieParser = require("cookie-parser");
+const http = require("http");
+const { Server } = require("socket.io");
+const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const connectDB = require("./config/db.js");
@@ -36,6 +39,30 @@ app.use("/api", requireAuth);
 app.use("/api/github", githubDataRoutes);
 app.use("/api", buildRoutes);
 
-app.listen(PORT, (req, res) => {
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true },
+});
+
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) return next(new Error("Authentication required"));
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+    socket.userId = decoded.id;
+    next();
+  } catch {
+    next(new Error("Invalid token"));
+  }
+});
+
+io.on("connection", (socket) => {
+  socket.join(socket.userId);
+});
+
+server.listen(PORT, () => {
   console.log(`Server is listening on port ${PORT}`);
 });
+
+module.exports = { io };

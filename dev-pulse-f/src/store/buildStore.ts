@@ -14,6 +14,7 @@ interface BuildState {
   fetchBuilds: () => Promise<void>
   setFilterStatus: (status: Build['status'] | 'all') => void
   setCurrentPage: (page: number) => void
+  addOrUpdateBuild: (build: Build) => void
 }
 
 export const useBuildStore = create<BuildState>((set, get) => ({
@@ -42,4 +43,15 @@ export const useBuildStore = create<BuildState>((set, get) => ({
   setFilterStatus: (status) => set({ filterStatus: status, currentPage: 1 }),
 
   setCurrentPage: (page) => set({ currentPage: page }),
+
+  addOrUpdateBuild: (build) =>
+    set((state) => {
+      const exists = state.builds.findIndex((b) => b.id === build.id)
+      if (exists >= 0) {
+        const builds = [...state.builds]
+        builds[exists] = build
+        return { builds }
+      }
+      return { builds: [build, ...state.builds], total: state.total + 1 }
+    }),
 }))
