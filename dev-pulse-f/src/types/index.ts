@@ -7,6 +7,14 @@ export interface User {
   org: string
 }
 
+export interface TimelineEntry {
+  id: string
+  action: string
+  user: string
+  timestamp: string
+  details: string
+}
+
 export interface Build {
   id: string
   repo: string
@@ -20,6 +28,7 @@ export interface Build {
 
 export interface Incident {
   id: string
+  userId?: string
   title: string
   severity: 'P1' | 'P2' | 'P3'
   status: 'open' | 'investigating' | 'resolved'
@@ -27,6 +36,7 @@ export interface Incident {
   createdAt: string
   slaMinutes: number
   elapsedMinutes: number
+  timeline?: TimelineEntry[]
   aiSuggestion?: string
 }
 

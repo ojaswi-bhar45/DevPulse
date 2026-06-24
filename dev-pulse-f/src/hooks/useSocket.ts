@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react'
-import { connectSocket, getSocket } from '../api/socket'
+import { connectSocket } from '../api/socket'
 import { useBuildStore } from '../store/buildStore'
+import { useIncidentStore } from '../store/incidentStore'
 import { getAccessToken } from '../store/authStore'
-import type { Build } from '../types'
+import type { Build, Incident } from '../types'
 
 export function useSocket() {
   const ran = useRef(false)
@@ -16,14 +17,33 @@ export function useSocket() {
     const socket = connectSocket()
     if (!socket) return
 
-    const handler = (build: Build) => {
+    const buildHandler = (build: Build) => {
       useBuildStore.getState().addOrUpdateBuild(build)
     }
 
-    socket.on('build:updated', handler)
+    const incidentCreatedHandler = (incident: Incident) => {
+      useIncidentStore.getState().addOrUpdateIncident(incident)
+    }
+
+    const incidentUpdatedHandler = (incident: Incident) => {
+      useIncidentStore.getState().addOrUpdateIncident(incident)
+    }
+
+    const slaWarningHandler = (incident: Incident) => {
+      useIncidentStore.getState().addOrUpdateIncident(incident)
+      window.dispatchEvent(new CustomEvent('incident:sla-warning', { detail: incident }))
+    }
+
+    socket.on('build:updated', buildHandler)
+    socket.on('incident:created', incidentCreatedHandler)
+    socket.on('incident:updated', incidentUpdatedHandler)
+    socket.on('incident:sla-warning', slaWarningHandler)
 
     return () => {
-      socket.off('build:updated', handler)
+      socket.off('build:updated', buildHandler)
+      socket.off('incident:created', incidentCreatedHandler)
+      socket.off('incident:updated', incidentUpdatedHandler)
+      socket.off('incident:sla-warning', slaWarningHandler)
     }
   }, [])
 }

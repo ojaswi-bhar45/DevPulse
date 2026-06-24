@@ -13,6 +13,8 @@ const authRoutes = require("./routes/auth.js");
 const githubAuthRoutes = require("./routes/github-auth.js");
 const githubDataRoutes = require("./routes/github-data.js");
 const buildRoutes = require("./routes/builds.js");
+const incidentRoutes = require("./routes/incidents.js");
+const Incident = require("./models/Incident.js");
 const { requireAuth } = require("./middleware/auth.js");
 
 const app = express();
@@ -38,6 +40,7 @@ app.use("/api", requireAuth);
 
 app.use("/api/github", githubDataRoutes);
 app.use("/api", buildRoutes);
+app.use("/api", incidentRoutes);
 
 const server = http.createServer(app);
 const io = new Server(server, {

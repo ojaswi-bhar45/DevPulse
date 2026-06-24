@@ -1,5 +1,5 @@
 import { io, type Socket } from 'socket.io-client'
-import { getAccessToken, useAuthStore } from '../store/authStore'
+import { getAccessToken } from '../store/authStore'
 
 let socket: Socket | null = null
 

@@ -1,5 +1,4 @@
-import { useEffect, useState } from 'react'
-import { formatSLA, getSLAColor } from '../../lib/formatters'
+import { getSLAColor } from '../../lib/formatters'
 
 interface SLABarProps {
   elapsed: number
@@ -7,11 +6,7 @@ interface SLABarProps {
 }
 
 export function SLABar({ elapsed, total }: SLABarProps) {
-  const [percent, setPercent] = useState(0)
-
-  useEffect(() => {
-    setPercent(formatSLA(elapsed, total))
-  }, [elapsed, total])
+  const percent = total === 0 ? 0 : Math.min(Math.round((elapsed / total) * 100), 100)
 
   const isOverdue = percent >= 100
 

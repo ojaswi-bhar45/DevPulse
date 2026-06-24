@@ -8,7 +8,7 @@ import { timeAgo } from '../../lib/formatters'
 import { SLABar } from '../incidents/SLABar'
 
 export function IncidentsPanel() {
-  const { incidents, loading, error, fetchIncidents, tickElapsed } = useIncidentStore()
+  const { incidents, loading, error, fetchIncidents } = useIncidentStore()
   const ran = useRef(false)
 
   useEffect(() => {
@@ -17,11 +17,6 @@ export function IncidentsPanel() {
       ran.current = true
     }
   }, [fetchIncidents])
-
-  useEffect(() => {
-    const interval = setInterval(() => tickElapsed(), 60000)
-    return () => clearInterval(interval)
-  }, [tickElapsed])
 
   if (loading) {
     return (
@@ -66,22 +61,26 @@ export function IncidentsPanel() {
   return (
     <Card title="Active Incidents">
       <div className="space-y-3">
-        {active.map((inc) => (
-          <div key={inc.id} className="py-2 border-b border-gray-100 dark:border-gray-800 last:border-0">
-            <div className="flex items-center justify-between mb-1.5">
-              <div className="flex items-center gap-2 min-w-0">
-                <Badge className={SEVERITY_COLORS[inc.severity]}>{inc.severity}</Badge>
-                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                  {inc.title}
+        {active.map((inc) => {
+          const slaPercent = (inc.elapsedMinutes / inc.slaMinutes) * 100
+          const slaWarning = slaPercent >= 80
+          return (
+            <div key={inc.id} className={`py-2 border-b border-gray-100 dark:border-gray-800 last:border-0 ${slaWarning ? 'bg-red-50/50 dark:bg-red-900/10 -mx-5 px-5 rounded' : ''}`}>
+              <div className="flex items-center justify-between mb-1.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Badge className={SEVERITY_COLORS[inc.severity]}>{inc.severity}</Badge>
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                    {inc.title}
+                  </span>
+                </div>
+                <span className="text-xs text-gray-400 shrink-0 ml-2">
+                  {timeAgo(inc.createdAt)}
                 </span>
               </div>
-              <span className="text-xs text-gray-400 shrink-0 ml-2">
-                {timeAgo(inc.createdAt)}
-              </span>
+              <SLABar elapsed={inc.elapsedMinutes} total={inc.slaMinutes} />
             </div>
-            <SLABar elapsed={inc.elapsedMinutes} total={inc.slaMinutes} />
-          </div>
-        ))}
+          )
+        })}
       </div>
     </Card>
   )

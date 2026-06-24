@@ -1,7 +1,7 @@
-import type { User, Build, Incident, Repo, AISummary } from '../types'
+import type { User, Build, Repo, AISummary } from '../types'
 import { genId, pickRandom, randomInt } from '../lib/helpers'
 import {
-  REPO_NAMES, BRANCHES, COMMIT_MESSAGES, INCIDENT_TITLES, ASSIGNEES,
+  REPO_NAMES, BRANCHES, COMMIT_MESSAGES,
 } from '../lib/constants'
 
 const now = Date.now()
@@ -50,29 +50,6 @@ export function generateMockBuilds(count = 20): Build[] {
     duration: randomDuration(),
     triggeredAt: randomDate(14),
   }))
-}
-
-export function generateMockIncidents(count = 10): Incident[] {
-  const severities: Incident['severity'][] = ['P1', 'P2', 'P3']
-  const statuses: Incident['status'][] = ['open', 'investigating', 'resolved']
-  return Array.from({ length: count }, (_, i) => {
-    const slaMinutes = pickRandom([30, 60, 120, 240])
-    const createdAt = new Date(now - randomInt(10, 400) * 60000).toISOString()
-    const elapsedMinutes = Math.floor((now - new Date(createdAt).getTime()) / 60000)
-    return {
-      id: genId(),
-      title: INCIDENT_TITLES[i % INCIDENT_TITLES.length],
-      severity: severities[randomInt(0, severities.length - 1)],
-      status: statuses[randomInt(0, statuses.length - 1)],
-      assignee: pickRandom(ASSIGNEES),
-      createdAt,
-      slaMinutes,
-      elapsedMinutes: Math.min(elapsedMinutes, slaMinutes + randomInt(0, 30)),
-      aiSuggestion: Math.random() > 0.5
-        ? `Suggested rollback of deployment ${pickRandom(['v2.1.3', 'v2.1.4', 'v3.0.0'])} affecting ${pickRandom(['auth service', 'API gateway', 'worker pool'])}`
-        : undefined,
-    }
-  })
 }
 
 export function generateMockRepos(count = 8): Repo[] {
