@@ -168,13 +168,95 @@ async function syncUserData(user) {
   return { repos: repoCount, builds: buildCount };
 }
 
+async function fetchOpenPRs(accessToken, owner, repo) {
+  const res = await fetch(`${GH_API}/repos/${owner}/${repo}/pulls?state=open&per_page=30`, {
+    headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.map((pr) => ({
+    number: pr.number,
+    title: pr.title,
+    html_url: pr.html_url,
+    head: pr.head.ref,
+    base: pr.base.ref,
+  }));
+}
+
+async function fetchPRDiff(accessToken, owner, repo, prNumber) {
+  const res = await fetch(`${GH_API}/repos/${owner}/${repo}/pulls/${prNumber}`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: "application/vnd.github.v3.diff",
+    },
+  });
+  if (!res.ok) return "";
+  return res.text();
+}
+
+async function fetchPRInfo(accessToken, owner, repo, prNumber) {
+  const res = await fetch(`${GH_API}/repos/${owner}/${repo}/pulls/${prNumber}`, {
+    headers: { Authorization: `Bearer ${accessToken}`, Accept: "application/vnd.github.v3+json" },
+  });
+  if (!res.ok) throw new Error(`Failed to fetch PR info: ${res.status}`);
+  const data = await res.json();
+  return { title: data.title, html_url: data.html_url };
+}
+
+async function syncPRSummaries(user) {
+  const Repo = require("../models/Repo");
+  const PRSummary = require("../models/PRSummary");
+  const { addPRSummaryJob } = require("./queue");
+
+  const token = user.githubAccessToken;
+  if (!token) throw new Error("GitHub not connected");
+
+  const repos = await Repo.find({ userId: user._id }).lean();
+  let prCount = 0;
+
+  for (const repo of repos) {
+    const sep = repo.fullName.indexOf("/");
+    const owner = repo.fullName.slice(0, sep);
+    const name = repo.fullName.slice(sep + 1);
+
+    const prs = await fetchOpenPRs(token, owner, name);
+
+    for (const pr of prs) {
+      const existing = await PRSummary.findOne({
+        userId: user._id,
+        prNumber: pr.number,
+        repo: name,
+        owner,
+      });
+      if (existing) continue;
+
+      await addPRSummaryJob({
+        userId: user._id.toString(),
+        repo: name,
+        owner,
+        prNumber: pr.number,
+        prTitle: pr.title,
+        prUrl: pr.html_url,
+        accessToken: token,
+      });
+      prCount++;
+    }
+  }
+
+  return prCount;
+}
+
 module.exports = {
   exchangeCodeForToken,
   fetchGitHubUser,
   fetchUserRepos,
   fetchWorkflowRuns,
   fetchBranches,
+  fetchOpenPRs,
+  fetchPRDiff,
+  fetchPRInfo,
   mapRunStatus,
   computeDuration,
   syncUserData,
+  syncPRSummaries,
 };

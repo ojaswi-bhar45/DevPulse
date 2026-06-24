@@ -21,6 +21,11 @@ router.post("/sync", async (req, res) => {
       return res.status(400).json({ message: "GitHub not connected" });
     }
     const result = await github.syncUserData(user);
+
+    github.syncPRSummaries(user).catch((err) =>
+      console.error("PR summary sync error:", err)
+    );
+
     res.json({ message: "Sync complete", ...result });
   } catch (err) {
     console.error("Sync error:", err);

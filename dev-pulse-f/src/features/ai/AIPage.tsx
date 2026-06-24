@@ -1,27 +1,26 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { PageWrapper } from '../../components/layout/PageWrapper'
 import { Card } from '../../components/ui/Card'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { AICard } from './AICard'
-import { generateMockSummaries } from '../../api/mock'
+import { useAIStore } from '../../store/aiStore'
 import type { AISummary } from '../../types'
 
 type FilterType = 'all' | AISummary['type']
 
 export function AIPage() {
-  const [summaries, setSummaries] = useState<AISummary[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<FilterType>('all')
+  const { summaries, loading, error, filter, totalPages, currentPage, fetchSummaries, setFilter, setCurrentPage } = useAIStore()
 
+  const ran = useRef(false)
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setSummaries(generateMockSummaries(6))
-      setLoading(false)
-    }, 800)
-    return () => clearTimeout(timer)
+    if (ran.current) return
+    ran.current = true
+    fetchSummaries()
   }, [])
 
-  const filtered = filter === 'all' ? summaries : summaries.filter((s) => s.type === filter)
+  useEffect(() => {
+    fetchSummaries()
+  }, [filter, currentPage])
 
   const FILTER_TABS: { label: string; value: FilterType }[] = [
     { label: 'All', value: 'all' },
@@ -58,17 +57,45 @@ export function AIPage() {
               </Card>
             ))}
           </div>
-        ) : filtered.length === 0 ? (
+        ) : error ? (
           <Card>
             <div className="text-center py-12">
-              <p className="text-sm text-gray-500 dark:text-gray-400">No summaries match the current filter</p>
+              <p className="text-sm text-red-500 dark:text-red-400">{error}</p>
+            </div>
+          </Card>
+        ) : summaries.length === 0 ? (
+          <Card>
+            <div className="text-center py-12">
+              <p className="text-sm text-gray-500 dark:text-gray-400">No summaries yet. Sync your repositories to generate AI reviews.</p>
             </div>
           </Card>
         ) : (
           <div className="space-y-3">
-            {filtered.map((summary) => (
+            {summaries.map((summary) => (
               <AICard key={summary.id} summary={summary} />
             ))}
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2">
+            <button
+              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Previous
+            </button>
+            <span className="text-sm text-gray-500 dark:text-gray-400">
+              Page {currentPage} of {totalPages}
+            </span>
+            <button
+              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              className="px-3 py-1.5 rounded-lg text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              Next
+            </button>
           </div>
         )}
       </div>
