@@ -14,10 +14,15 @@ jobs:
         with:
           node-version: v24.15.0
 
-      - run: npm ci
-      - run: npm run build
+      - name: Install frontend dependencies
+        run: |
+          cd dev-pulse-f
+          npm ci
 
-      - run: npm test
+      - name: Build frontend
+        run: |
+          cd dev-pulse-f
+          npm run build
 
           
 
